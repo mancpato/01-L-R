@@ -1,0 +1,39 @@
+# Processing / Java
+bin/
+out/
+build/
+
+# Archivos de exportación de Processing
+application.windows32/
+application.windows64/
+application.linux32/
+application.linux64/
+application.macosx/
+
+# --- Instaladores y Binarios Pesados ---
+*.tgz
+*.zip
+*.tar.gz
+*.exe
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Temporales de edición
+*.tmp
+*.bak
+
+# Documentos diversos
+*.pdf
+*.docx
+*.xlsx
+*.pptx
+*.odt
+*.ods
+*.odp
+
