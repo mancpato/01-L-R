@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Riemann vs Lebesgue — UABCS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #07070f;
+    display: flex;
+    justify-content: center;
+    font-family: 'Courier New', monospace;
+  }
+</style>
+</head>
+<body>
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  INTEGRAL DE RIEMANN  vs  INTEGRAL DE LEBESGUE
+//  Explorador Interactivo — f : [0,1] → ℝ
+//  Universidad Autónoma de Baja California Sur
+//  p5.js  (JavaScript / Processing)
+//
+//  Controles:
+//    Slider superior  →  n  particiones (eje X en Riemann, eje Y en Lebesgue)
+//    Slider inferior  →  m  sub-divisiones por partición
+//    Teclas ← →      →  ajuste fino de n
+//    Teclas ↑ ↓      →  ajuste fino de m
+//    Botón [sup/inf]  →  activa cotas superior e inferior en Riemann
+// ═══════════════════════════════════════════════════════════════════
+
+// ── LIENZO ─────────────────────────────────────────────────────────
+const CW = 1100, CH = 720;
+
+// ── GEOMETRÍA DE PANELES ───────────────────────────────────────────
+const PW = 470, PH = 365;
+const P1X = 15,  P2X = 615;
+const PY  = 178;
+// Márgenes internos de cada panel
+const PL = 44, PR = 14, PT = 26, PB = 34;
+
+// ── SLIDERS ────────────────────────────────────────────────────────
+const SLX = 48, SLW = CW - 96;
+const SL_N_Y = 138;           // slider superior (n)
+const SL_M_Y = PY + PH + 58; // slider inferior (m)
+
+// ── MUESTREO ───────────────────────────────────────────────────────
+const N_CURVE  = 3000;   // puntos para dibujar la curva
+const N_PREIMG = 4000;   // muestras base para preimagen (×n×m escalable)
+
+// ═══════════════════════════════════════════════════════════════════
+//  FUNCIONES DISPONIBLES
+// ═══════════════════════════════════════════════════════════════════
+const FUNC_NAMES = ['x²', '√x', 'Thomae', 'Dirichlet'];
+const FUNC_INFO  = [
+  'Suave. RI = LI = ⅓ ≈ 0.33333. Convergencia rápida y simétrica en ambos métodos.',
+  'Suave. RI = LI = ⅔ ≈ 0.66667. Los strips Lebesgue capturan intervalos de ancho variable en X.',
+  'f(p/q)=1/q (irred.), f(irrac.)=0. Discont. en ℚ (denso). RI = LI = 0. Con sup/inf verás la dificultad del método de Riemann.',
+  'f(ℚ)=1, f(ℝ\\ℚ)=0. ∑_sup ≡ 1, ∑_inf ≡ 0 siempre → NO Riemann integrable. LI = 0  porque μ(ℚ) = 0.'
+];
+
+// ═══════════════════════════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════════════════
+let fi         = 0;     // índice de función activa
+let sN         = 8;     // particiones
+let sM         = 4;     // sub-divisiones
+let showBounds = false; // mostrar sup/inf en Riemann
+let dragMode   = null;  // 'N' | 'M' | null
+
+// Cache de cómputo
+let prevKey = '';
+let curvePoints  = [];
+let rects        = [];   // {x0,x1,fMid,fSup,fInf,strip}
+let lebesgue     = {};   // {measures[], classifyX[], classifyK[]}
+let rSumMid = 0, rSumSup = 0, rSumInf = 0, lSum = 0;
+
+// Cache de posiciones de botones (para clics)
+let btnFuncs  = [];
+let btnBounds = {};
+
+// ═══════════════════════════════════════════════════════════════════
+//  MATEMÁTICAS
+// ═══════════════════════════════════════════════════════════════════
+function mcd(a, b) {
+  a = Math.abs(Math.round(a));
+  b = Math.abs(Math.round(b));
+  while (b) { let t = b; b = a % b; a = t; }
+  return a || 1;
+}
+
+// Función de Thomae: f(p/q reducida) = 1/q, f(irracional) = 0
+function thomae(x) {
+  if (x <= 0 || x >= 1) return 0;
+  for (let q = 1; q <= 300; q++) {
+    let p = Math.round(x * q);
+    if (p <= 0 || p >= q) continue;
+    if (Math.abs(x - p / q) < 0.5 / (q * q)) {
+      return 1.0 / (q / mcd(p, q));
+    }
+  }
+  return 0;
+}
+
+// Función de Dirichlet: 1 en racionales, 0 en irracionales
+// (Detectada por proximidad a p/q con q≤80 — en float todos son racionales,
+//  así que mostramos "racional explícito" vs "aparentemente irracional")
+function dirichlet(x) {
+  for (let q = 1; q <= 80; q++) {
+    let p = Math.round(x * q);
+    if (Math.abs(x - p / q) < 1e-8) return 1;
+  }
+  return 0;
+}
+
+function evalF(x) {
+  switch (fi) {
+    case 0: return x * x;
+    case 1: return Math.sqrt(x);
+    case 2: return thomae(x);
+    case 3: return dirichlet(x);
+  }
+  return 0;
+}
+
+function trueIntegral() {
+  // Valor exacto conocido (null si no existe RI)
+  switch (fi) {
+    case 0: return 1 / 3;
+    case 1: return 2 / 3;
+    case 2: return 0;
+    case 3: return null;
+  }
+}
+
+// ── SUPREM. e ÍNFIMO NUMÉRICO en [a,b] ────────────────────────────
+function supInfOn(a, b, samples = 60) {
+  let s = -Infinity, i = Infinity;
+  for (let k = 0; k <= samples; k++) {
+    let x = a + (b - a) * k / samples;
+    let v = constrain(evalF(x), 0, 1.05);
+    if (v > s) s = v;
+    if (v < i) i = v;
+  }
+  // Para Dirichlet: siempre hay racionales e irracionales en cada intervalo
+  if (fi === 3) { s = 1; i = 0; }
+  return { sup: s, inf: i };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CÓMPUTO (se ejecuta sólo cuando cambia el estado)
+// ═══════════════════════════════════════════════════════════════════
+function rebuild() {
+  let key = `${fi}-${sN}-${sM}`;
+  if (key === prevKey) return;
+  prevKey = key;
+
+  // ── CURVA ────────────────────────────────────────────
+  curvePoints = [];
+  for (let i = 0; i <= N_CURVE; i++) {
+    let x = i / N_CURVE;
+    let y = constrain(evalF(x), 0, 1.05);
+    curvePoints.push([x, y]);
+  }
+
+  // ── RIEMANN ─────────────────────────────────────────
+  let total = sN * sM;
+  rects = [];
+  rSumMid = 0; rSumSup = 0; rSumInf = 0;
+  for (let i = 0; i < total; i++) {
+    let x0   = i / total;
+    let x1   = x0 + 1 / total;
+    let xMid = (x0 + x1) / 2;
+    let fMid = constrain(evalF(xMid), 0, 1.05);
+    let { sup: fSup, inf: fInf } = supInfOn(x0, x1);
+    let strip = Math.floor(i / sM);  // franja "gruesa" para color
+    rSumMid += fMid / total;
+    rSumSup += fSup / total;
+    rSumInf += fInf / total;
+    rects.push({ x0, x1, fMid, fSup, fInf, strip });
+  }
+
+  // ── LEBESGUE ─────────────────────────────────────────
+  let n  = sN;
+  let dy = 1.0 / n;
+  let ns = max(N_PREIMG * sM, n * 50);  // muestras para estimar medida
+
+  let measures   = new Array(n).fill(0);
+  let classifyX  = [];
+  let classifyK  = [];
+
+  for (let j = 0; j <= ns; j++) {
+    let x  = j / ns;
+    let fv = constrain(evalF(x), 0, 1.0 - 1e-9);
+    let k  = constrain(Math.floor(fv / dy), 0, n - 1);
+    measures[k]++;
+    classifyX.push(x);
+    classifyK.push(k);
+  }
+
+  let total_s = ns + 1;
+  measures = measures.map(v => v / total_s);
+
+  lSum = 0;
+  for (let k = 0; k < n; k++) {
+    // Suma inferior de Lebesgue: k·Δy · μ(franja k)
+    lSum += (k * dy) * measures[k];
+  }
+
+  lebesgue = { measures, classifyX, classifyK };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PALETA DE COLORES
+// ═══════════════════════════════════════════════════════════════════
+// Gradiente azul→cian→verde→amarillo→rojo para strips k de n
+function stripColor(k, n, alpha) {
+  let t  = (n > 1) ? k / (n - 1) : 0;
+  // Componentes RGB para hue que va de 220° a 0°
+  let h  = 220 * (1 - t);          // grados
+  let hr = h / 60;
+  let s  = 0.80, l = 0.55;
+  // HLS → RGB (manual para no depender de p5 colorMode)
+  let c1 = (1 - Math.abs(2 * l - 1)) * s;
+  let x1 = c1 * (1 - Math.abs(hr % 2 - 1));
+  let r, g, b;
+  if      (hr < 1) { r=c1; g=x1; b=0; }
+  else if (hr < 2) { r=x1; g=c1; b=0; }
+  else if (hr < 3) { r=0;  g=c1; b=x1; }
+  else if (hr < 4) { r=0;  g=x1; b=c1; }
+  else if (hr < 5) { r=x1; g=0;  b=c1; }
+  else             { r=c1; g=0;  b=x1; }
+  let m1 = l - c1/2;
+  r = Math.round((r + m1) * 255);
+  g = Math.round((g + m1) * 255);
+  b = Math.round((b + m1) * 255);
+  if (alpha !== undefined) return color(r, g, b, alpha);
+  return color(r, g, b);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  P5.JS SETUP / DRAW
+// ═══════════════════════════════════════════════════════════════════
+function setup() {
+  createCanvas(CW, CH);
+  textFont('Courier New');
+}
+
+function draw() {
+  rebuild();
+
+  background('#07070f');
+  drawHeader();
+  drawFuncButtons();
+  drawBoundsButton();
+  drawSliderN();
+  drawPanelRiemann(P1X, PY, PW, PH);
+  drawPanelLebesgue(P2X, PY, PW, PH);
+  drawSliderM();
+  drawResults();
+  drawLegend();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  UI — ENCABEZADO
+// ═══════════════════════════════════════════════════════════════════
+function drawHeader() {
+  noStroke();
+  fill(210);
+  textSize(16);
+  textAlign(CENTER, TOP);
+  text('INTEGRAL DE RIEMANN   ×   INTEGRAL DE LEBESGUE', CW / 2, 12);
+  fill(70);
+  textSize(9.5);
+  text('f : [0,1] → ℝ   |   Explorador Interactivo   |   p5.js', CW / 2, 32);
+}
+
+// ── BOTONES DE FUNCIÓN ─────────────────────────────────────────────
+function drawFuncButtons() {
+  let bw = 118, bh = 25, gap = 10;
+  let tw  = FUNC_NAMES.length * bw + (FUNC_NAMES.length - 1) * gap;
+  let sx  = CW / 2 - tw / 2;
+  let sy  = 46;
+  btnFuncs = [];
+
+  for (let i = 0; i < FUNC_NAMES.length; i++) {
+    let bx = sx + i * (bw + gap);
+    btnFuncs.push({ bx, sy, bw, bh });
+
+    let active = (i === fi);
+    let c = stripColor(i * 3, 12);
+    if (active) {
+      fill(red(c), green(c), blue(c), 210);
+      stroke(red(c), green(c), blue(c));
+      strokeWeight(1.5);
+    } else {
+      fill(18, 18, 32);
+      stroke(50, 50, 75);
+      strokeWeight(1);
+    }
+    rect(bx, sy, bw, bh, 5);
+
+    noStroke();
+    fill(active ? 10 : 140);
+    textSize(12);
+    textAlign(CENTER, CENTER);
+    text(FUNC_NAMES[i], bx + bw / 2, sy + bh / 2);
+  }
+}
+
+// ── BOTÓN sup/inf ──────────────────────────────────────────────────
+function drawBoundsButton() {
+  let bw = 128, bh = 20, bx = CW / 2 - bw / 2, by = 78;
+  btnBounds = { bx, by, bw, bh };
+
+  if (showBounds) {
+    fill(180, 90, 30, 180); stroke(255, 140, 50);
+  } else {
+    fill(20, 20, 35); stroke(55, 55, 80);
+  }
+  strokeWeight(1);
+  rect(bx, by, bw, bh, 4);
+
+  noStroke();
+  fill(showBounds ? 255 : 120);
+  textSize(10);
+  textAlign(CENTER, CENTER);
+  text('[ mostrar sup / inf ]', bx + bw / 2, by + bh / 2);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SLIDERS
+// ═══════════════════════════════════════════════════════════════════
+function drawSliderN() {
+  let pos = map(sN, 2, 40, SLX, SLX + SLW);
+  noStroke(); fill(80); textSize(9.5); textAlign(LEFT, CENTER);
+  text('n = particiones  [ eje X → Riemann  |  eje Y → Lebesgue ]', SLX, SL_N_Y - 14);
+  fill(38, 38, 68); rect(SLX, SL_N_Y - 3, SLW, 5, 3);
+  fill(60, 120, 255); rect(SLX, SL_N_Y - 3, pos - SLX, 5, 3);
+  fill(160, 200, 255); noStroke(); ellipse(pos, SL_N_Y, 15, 15);
+  fill(90, 155, 255); textSize(13); textAlign(RIGHT, CENTER);
+  text('n = ' + sN, SLX + SLW, SL_N_Y - 14);
+}
+
+function drawSliderM() {
+  let pos = map(sM, 1, 20, SLX, SLX + SLW);
+  noStroke(); fill(80); textSize(9.5); textAlign(LEFT, CENTER);
+  text('m = sub-divisiones por partición  [ n×m rectángulos en Riemann / mayor precisión en Lebesgue ]', SLX, SL_M_Y - 14);
+  fill(38, 58, 38); rect(SLX, SL_M_Y - 3, SLW, 5, 3);
+  fill(40, 180, 90); rect(SLX, SL_M_Y - 3, pos - SLX, 5, 3);
+  fill(150, 235, 180); noStroke(); ellipse(pos, SL_M_Y, 15, 15);
+  fill(90, 220, 140); textSize(13); textAlign(RIGHT, CENTER);
+  text('m = ' + sM, SLX + SLW, SL_M_Y - 14);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SISTEMA DE COORDENADAS DE PANEL
+// ═══════════════════════════════════════════════════════════════════
+function makeMap(px, py, pw, ph) {
+  let axX0 = px + PL;       // x canvas del punto x=0
+  let axX1 = px + pw - PR;  // x canvas del punto x=1
+  let axY0 = py + ph - PB;  // y canvas del punto y=0  (abajo)
+  let axY1 = py + PT;       // y canvas del punto y=1.05 (arriba)
+  return {
+    toX:  x => map(x, 0, 1,    axX0, axX1),
+    toY:  y => map(y, 0, 1.05, axY0, axY1),
+    axX0, axX1, axY0, axY1
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PANEL RIEMANN
+// ═══════════════════════════════════════════════════════════════════
+function drawPanelRiemann(px, py, pw, ph) {
+  // Fondo
+  fill('#0b0b1c'); stroke('#252545'); strokeWeight(1);
+  rect(px, py, pw, ph, 4);
+
+  let { toX, toY, axX0, axX1, axY0, axY1 } = makeMap(px, py, pw, ph);
+
+  // ── Cuadrícula sutil ─────────────────────────────
+  stroke(255, 255, 255, 7); strokeWeight(0.5);
+  for (let i = 1; i < 4; i++) {
+    line(toX(i/4), axY1, toX(i/4), axY0);
+    line(axX0, toY(i/4), axX1, toY(i/4));
+  }
+
+  // ── Rectángulos de Riemann ───────────────────────
+  for (let r of rects) {
+    let { x0, x1, fMid, fSup, fInf, strip } = r;
+    let n  = sN;
+    let c  = stripColor(strip, n);
+    let rx0 = toX(x0), rx1 = toX(x1);
+    let ryB = toY(0);
+
+    if (showBounds) {
+      // Parte entre inf y sup: gap resaltado
+      let ryI = toY(fInf), ryS = toY(fSup);
+
+      // Región bajo inf (integral garantizada)
+      fill(red(c), green(c), blue(c), 130);
+      noStroke();
+      rect(rx0, ryI, rx1 - rx0, ryB - ryI);
+
+      // Gap [inf, sup] — incertidumbre
+      fill(255, 80, 30, 90);
+      stroke(255, 100, 40, 120); strokeWeight(0.5);
+      rect(rx0, ryS, rx1 - rx0, ryI - ryS);
+
+      // Líneas sup / inf
+      stroke(255, 180, 50, 200); strokeWeight(1);
+      line(rx0, ryS, rx1, ryS);
+      stroke(50, 180, 255, 200);
+      line(rx0, ryI, rx1, ryI);
+    } else {
+      // Punto medio estándar
+      fill(red(c), green(c), blue(c), 140);
+      stroke(red(c), green(c), blue(c), 70);
+      strokeWeight(0.4);
+      rect(rx0, toY(fMid), rx1 - rx0, ryB - toY(fMid));
+    }
+  }
+
+  // Separadores de partición gruesa
+  stroke(255, 255, 255, 50); strokeWeight(1);
+  for (let i = 0; i <= sN; i++) {
+    let rx = toX(i / sN);
+    line(rx, axY0, rx, axY1);
+  }
+
+  // Curva
+  drawCurve(toX, toY);
+
+  // Ejes y etiquetas
+  drawAxes(toX, toY, axX0, axX1, axY0, axY1);
+
+  // Etiqueta del panel
+  noStroke(); fill(200); textSize(14); textAlign(CENTER, TOP);
+  text('RIEMANN', px + pw / 2, py + 6);
+  fill(65); textSize(8.5);
+  let lbl = showBounds
+    ? 'naranja = gap [inf,sup]  |  azul = suma inf  |  rojo = suma sup'
+    : 'n×m = ' + (sN * sM) + ' rectángulos  |  regla del punto medio';
+  text(lbl, px + pw / 2, py + ph - 18);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PANEL LEBESGUE
+// ═══════════════════════════════════════════════════════════════════
+function drawPanelLebesgue(px, py, pw, ph) {
+  fill('#0a160b'); stroke('#25452a'); strokeWeight(1);
+  rect(px, py, pw, ph, 4);
+
+  let { toX, toY, axX0, axX1, axY0, axY1 } = makeMap(px, py, pw, ph);
+  let n  = sN;
+  let dy = 1.0 / n;
+  let { measures, classifyX, classifyK } = lebesgue;
+
+  // ── Cuadrícula sutil ─────────────────────────────
+  stroke(255, 255, 255, 7); strokeWeight(0.5);
+  for (let i = 1; i < 4; i++) {
+    line(toX(i/4), axY1, toX(i/4), axY0);
+    line(axX0, toY(i/4), axX1, toY(i/4));
+  }
+
+  // ── Bandas horizontales (partición del eje Y) ────
+  for (let k = 0; k < n; k++) {
+    let y0 = k * dy, y1 = y0 + dy;
+    let c  = stripColor(k, n);
+
+    // Fondo de la banda
+    fill(red(c), green(c), blue(c), 26);
+    noStroke();
+    rect(axX0, toY(y1), axX1 - axX0, toY(y0) - toY(y1));
+
+    // Línea horizontal en y0
+    stroke(red(c), green(c), blue(c), 110);
+    strokeWeight(0.8);
+    line(axX0, toY(y0), axX1, toY(y0));
+  }
+  // Línea en y=1
+  stroke(200, 200, 200, 70); strokeWeight(0.7);
+  line(axX0, toY(1.0), axX1, toY(1.0));
+
+  // ── Barra de preimagen (debajo del eje X) ────────
+  // Colorea cada x según el strip al que pertenece f(x)
+  let barH = 16;
+  let barY = axY0 + 5;
+  let step = max(1, Math.floor(classifyX.length / (axX1 - axX0) * 2));
+  for (let j = 0; j < classifyX.length; j += step) {
+    let xj = classifyX[j], kj = classifyK[j];
+    let c  = stripColor(kj, n);
+    stroke(red(c), green(c), blue(c), 210);
+    strokeWeight(1.6);
+    line(toX(xj), barY, toX(xj), barY + barH - 2);
+  }
+  noStroke(); fill(60); textSize(7.5); textAlign(LEFT, TOP);
+  text('preimagen', axX0, barY + barH + 2);
+
+  // ── Barras de medida (derecha del panel) ─────────
+  // Longitud proporcional a μ(f⁻¹(strip k))
+  let mX   = axX1 + 4;
+  let mMax = 28;          // ancho máximo en px (medida = 1 → mMax)
+  for (let k = 0; k < n; k++) {
+    let y0  = k * dy, y1 = y0 + dy;
+    let bw  = constrain(measures[k] * mMax * n, 0, mMax);
+    let c   = stripColor(k, n);
+    fill(red(c), green(c), blue(c), 200); noStroke();
+    rect(mX, toY(y1) + 1, bw, toY(y0) - toY(y1) - 2);
+  }
+  noStroke(); fill(60); textSize(7.5); textAlign(LEFT, TOP);
+  text('μ', mX, axY1);
+
+  // Curva
+  drawCurve(toX, toY);
+
+  // Ejes
+  drawAxes(toX, toY, axX0, axX1, axY0, axY1);
+
+  // Etiqueta del panel
+  noStroke(); fill(200); textSize(14); textAlign(CENTER, TOP);
+  text('LEBESGUE', px + pw / 2, py + 6);
+  fill(65); textSize(8.5);
+  text('n = ' + n + ' bandas en Y  |  barra derecha = μ(preimagen)  |  azul = isocontribución', px + pw / 2, py + ph - 18);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CURVA y EJES (compartidos)
+// ═══════════════════════════════════════════════════════════════════
+function drawCurve(toX, toY) {
+  if (fi === 2) {
+    // Thomae: línea base + puntos sobre irracionales/racionales
+    stroke(255, 235, 70, 55); strokeWeight(1);
+    line(toX(0), toY(0), toX(1), toY(0));
+    stroke(255, 235, 70, 200); strokeWeight(2.5);
+    for (let [x, y] of curvePoints) {
+      if (y > 0.005) point(toX(x), toY(y));
+    }
+  } else if (fi === 3) {
+    // Dirichlet: dos líneas densas, una en y=1 y otra en y=0
+    stroke(255, 235, 70, 50); strokeWeight(1);
+    line(toX(0), toY(0), toX(1), toY(0));
+    line(toX(0), toY(1), toX(1), toY(1));
+    stroke(255, 235, 70, 180); strokeWeight(2.5);
+    for (let [x, y] of curvePoints) {
+      point(toX(x), toY(y));
+    }
+  } else {
+    // Funciones continuas: polilínea
+    stroke(255, 235, 70); strokeWeight(2.5); noFill();
+    beginShape();
+    for (let [x, y] of curvePoints) vertex(toX(x), toY(y));
+    endShape();
+  }
+}
+
+function drawAxes(toX, toY, axX0, axX1, axY0, axY1) {
+  stroke(150); strokeWeight(1);
+  line(axX0, axY0, axX1, axY0);  // eje X
+  line(axX0, axY0, axX0, axY1);  // eje Y
+
+  noStroke(); fill(95); textSize(7.5);
+  // Eje X
+  for (let i = 0; i <= 4; i++) {
+    textAlign(CENTER, TOP);
+    text((i/4).toFixed(2), toX(i/4), axY0 + 5);
+    // Tick
+    stroke(140); strokeWeight(0.8);
+    line(toX(i/4), axY0, toX(i/4), axY0 + 3);
+    noStroke();
+  }
+  // Eje Y
+  for (let i = 0; i <= 4; i++) {
+    textAlign(RIGHT, CENTER);
+    text((i/4).toFixed(2), axX0 - 4, toY(i/4));
+    stroke(140); strokeWeight(0.8);
+    line(axX0 - 3, toY(i/4), axX0, toY(i/4));
+    noStroke();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  RESULTADOS NUMÉRICOS
+// ═══════════════════════════════════════════════════════════════════
+function drawResults() {
+  let y = SL_M_Y + 36;
+
+  // Sumas
+  noStroke(); fill(190); textSize(13); textAlign(CENTER);
+  let rLabel = showBounds
+    ? `[${rSumInf.toFixed(5)},  ${rSumSup.toFixed(5)}]`
+    : rSumMid.toFixed(6);
+  text('Σ Riemann ≈  ' + rLabel, P1X + PW / 2, y);
+  text('Σ Lebesgue ≈  ' + lSum.toFixed(6), P2X + PW / 2, y);
+
+  // Error respecto al valor exacto
+  let exact = trueIntegral();
+  if (exact !== null) {
+    let errR = Math.abs(rSumMid - exact);
+    let errL = Math.abs(lSum - exact);
+    fill(75); textSize(8.5);
+    text('error: ' + errR.toFixed(6), P1X + PW / 2, y + 15);
+    text('error: ' + errL.toFixed(6), P2X + PW / 2, y + 15);
+    fill(100); textSize(10);
+    text('valor exacto: ' + exact.toFixed(8), CW / 2, y + 30);
+  } else {
+    fill(200, 80, 50); textSize(9);
+    text('∑_sup = ' + rSumSup.toFixed(4) + '   ∑_inf = ' + rSumInf.toFixed(4) + '   gap = ' + (rSumSup - rSumInf).toFixed(4), P1X + PW / 2, y + 16);
+    fill(50, 180, 100); text('LI = 0  (μ(ℚ) = 0)', P2X + PW / 2, y + 16);
+  }
+
+  // Info de la función
+  fill(65); textSize(9); textAlign(CENTER);
+  text(FUNC_INFO[fi], CW / 2, y + 50);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  LEYENDA VISUAL (clave conceptual)
+// ═══════════════════════════════════════════════════════════════════
+function drawLegend() {
+  let lx = CW / 2, ly = SL_M_Y + 68;
+  noStroke(); fill(40); textSize(8.5); textAlign(CENTER);
+  text(
+    'Riemann: particiona el DOMINIO (eje X) — rectángulos verticales — f medida por alturas   |   ' +
+    'Lebesgue: particiona el CODOMINIO (eje Y) — f medida por longitud de preimágenes (μ)',
+    lx, ly
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════════════════════════
+function mousePressed() {
+  // Botones de función
+  for (let i = 0; i < btnFuncs.length; i++) {
+    let { bx, sy, bw, bh } = btnFuncs[i];
+    if (mouseX > bx && mouseX < bx + bw && mouseY > sy && mouseY < sy + bh) {
+      fi = i; prevKey = '';
+    }
+  }
+  // Botón sup/inf
+  let { bx, by, bw, bh } = btnBounds;
+  if (mouseX > bx && mouseX < bx + bw && mouseY > by && mouseY < by + bh) {
+    showBounds = !showBounds;
+  }
+  // Sliders
+  if (Math.abs(mouseY - SL_N_Y) < 14 && mouseX >= SLX && mouseX <= SLX + SLW) dragMode = 'N';
+  if (Math.abs(mouseY - SL_M_Y) < 14 && mouseX >= SLX && mouseX <= SLX + SLW) dragMode = 'M';
+}
+
+function mouseDragged() {
+  let cx = constrain(mouseX, SLX, SLX + SLW);
+  if (dragMode === 'N') { sN = round(map(cx, SLX, SLX + SLW, 2, 40)); prevKey = ''; }
+  if (dragMode === 'M') { sM = round(map(cx, SLX, SLX + SLW, 1, 20)); prevKey = ''; }
+}
+
+function mouseReleased() { dragMode = null; }
+
+function keyPressed() {
+  if (keyCode === LEFT_ARROW)  { sN = max(2, sN - 1);  prevKey = ''; }
+  if (keyCode === RIGHT_ARROW) { sN = min(40, sN + 1); prevKey = ''; }
+  if (keyCode === DOWN_ARROW)  { sM = max(1, sM - 1);  prevKey = ''; }
+  if (keyCode === UP_ARROW)    { sM = min(20, sM + 1); prevKey = ''; }
+}
+</script>
+</body>
+</html>
