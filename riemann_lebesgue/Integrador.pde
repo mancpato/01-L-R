@@ -96,6 +96,8 @@ class Integrador {
       if (v > s) s = v;
       if (v < inf) inf = v;
     }
+    // Para Dirichlet: siempre hay racionales e irracionales en cada intervalo
+    if (f.id == 3) { s = 1; inf = 0; }
     return new float[] { s, inf };
   }
 }

@@ -75,8 +75,8 @@ void draw() {
   drawSliderN();
 
   ig.rebuild(fi, sN, sM, funciones[fi]);
-  panelR.draw(P1X, PY, PW, PH, ig, showBounds, sN, sM);
-  panelL.draw(P2X, PY, PW, PH, ig, sN);
+  panelR.draw(P1X, PY, PW, PH, ig, showBounds, sN, sM, fi);
+  panelL.draw(P2X, PY, PW, PH, ig, sN, fi);
 
   drawSliderM();
   drawResults();

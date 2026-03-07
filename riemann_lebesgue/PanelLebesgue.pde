@@ -1,6 +1,6 @@
 class PanelLebesgue {
 
-  void draw(int px, int py, int pw, int ph, Integrador ig, int sN) {
+  void draw(int px, int py, int pw, int ph, Integrador ig, int sN, int fi) {
 
     int n = sN;
     float dy = 1.0 / n;
@@ -91,16 +91,44 @@ class PanelLebesgue {
     text("\u03BC", mX, axY1);
 
     // ── Curva f(x) ─────────────────────────────────
-    stroke(255, 235, 70);
-    strokeWeight(2.5);
-    noFill();
-    beginShape();
-    for (int i = 0; i <= N_CURVE; i++) {
-      float sx = map(ig.curveX[i], 0, 1,    axX0, axX1);
-      float sy = map(ig.curveY[i], 0, 1.05, axY0, axY1);
-      vertex(sx, sy);
+    if (fi == 2) {
+      // Thomae: línea base y=0 + puntos
+      stroke(255, 235, 70, 55); strokeWeight(1);
+      line(map(0, 0, 1, axX0, axX1), map(0, 0, 1.05, axY0, axY1),
+           map(1, 0, 1, axX0, axX1), map(0, 0, 1.05, axY0, axY1));
+      stroke(255, 235, 70, 200); strokeWeight(2.5);
+      for (int i = 0; i <= N_CURVE; i++) {
+        if (ig.curveY[i] > 0.005) {
+          point(map(ig.curveX[i], 0, 1, axX0, axX1),
+                map(ig.curveY[i], 0, 1.05, axY0, axY1));
+        }
+      }
+    } else if (fi == 3) {
+      // Dirichlet: líneas en y=0 e y=1 + puntos
+      stroke(255, 235, 70, 50); strokeWeight(1);
+      float y0px = map(0, 0, 1.05, axY0, axY1);
+      float y1px = map(1, 0, 1.05, axY0, axY1);
+      float x0px = map(0, 0, 1, axX0, axX1);
+      float x1px = map(1, 0, 1, axX0, axX1);
+      line(x0px, y0px, x1px, y0px);
+      line(x0px, y1px, x1px, y1px);
+      stroke(255, 235, 70, 180); strokeWeight(2.5);
+      for (int i = 0; i <= N_CURVE; i++) {
+        point(map(ig.curveX[i], 0, 1, axX0, axX1),
+              map(ig.curveY[i], 0, 1.05, axY0, axY1));
+      }
+    } else {
+      // Funciones continuas: polilínea
+      stroke(255, 235, 70);
+      strokeWeight(2.5);
+      noFill();
+      beginShape();
+      for (int i = 0; i <= N_CURVE; i++) {
+        vertex(map(ig.curveX[i], 0, 1, axX0, axX1),
+               map(ig.curveY[i], 0, 1.05, axY0, axY1));
+      }
+      endShape();
     }
-    endShape();
 
     // ── Ejes ───────────────────────────────────────
     stroke(150);
