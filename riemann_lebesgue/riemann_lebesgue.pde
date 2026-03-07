@@ -153,7 +153,7 @@ void drawBoundsButton() {
 
   noStroke();
   fill(showBounds ? 255 : 120);
-  textSize(10);
+  textSize(11);
   textAlign(CENTER, CENTER);
   text("[ mostrar sup / inf ]", bx + bw / 2, by + bh / 2);
 }
@@ -166,7 +166,7 @@ void drawSliderN() {
 
   noStroke();
   fill(120);
-  textSize(12);
+  textSize(13);
   textAlign(LEFT, CENTER);
   text("n = particiones  [ eje X \u2192 Riemann  |  eje Y \u2192 Lebesgue ]", SLX, SL_N_Y - 14);
 
@@ -193,7 +193,7 @@ void drawSliderM() {
 
   noStroke();
   fill(120);
-  textSize(12);
+  textSize(13);
   textAlign(LEFT, CENTER);
   text("m = sub-divisiones por partici\u00F3n  [ n\u00D7m rect\u00E1ngulos en Riemann / mayor precisi\u00F3n en Lebesgue ]", SLX, SL_M_Y - 14);
 
@@ -233,8 +233,8 @@ void drawResults() {
   } else {
     rLabel = nf(ig.rSumMid, 1, 6);
   }
-  text("\u03A3 Riemann \u2248  " + rLabel, P1X + PW / 2, y);
-  text("\u03A3 Lebesgue \u2248  " + nf(ig.lSum, 1, 6), P2X + PW / 2, y);
+  text("\u03A3 Riemann \u2248  " + rLabel, P1X + PW / 2, y-5);
+  text("\u03A3 Lebesgue \u2248  " + nf(ig.lSum, 1, 6), P2X + PW / 2, y-5);
 
   // Error respecto al valor exacto
   FuncDef f = funciones[fi];
@@ -244,11 +244,11 @@ void drawResults() {
     float errL = abs(ig.lSum - exact);
     fill(150);
     textSize(13);
-    text("error: " + nf(errR, 1, 6), P1X + PW / 2, y + 18);
-    text("error: " + nf(errL, 1, 6), P2X + PW / 2, y + 18);
+    text("error: " + nf(errR, 1, 6), P1X + PW / 2, y + 15);
+    text("error: " + nf(errL, 1, 6), P2X + PW / 2, y + 15);
     fill(170);
-    textSize(13);
-    text("Valor exacto: " + nf(exact, 1, 8), CW / 2, y + 15);
+    textSize(14);
+    text("Valor exacto: " + nf(exact, 1, 8), CW / 2, y + 8);
   } else {
     // Dirichlet: no Riemann-integrable
     fill(200, 80, 50);
