@@ -1,6 +1,7 @@
 class PanelLebesgue {
 
-  void draw(int px, int py, int pw, int ph, Integrador ig, int sN, int fi) {
+  void draw(int px, int py, int pw, int ph, Integrador ig, int sN, int fi,
+            int hoverPanel, int hoverBand) {
 
     int n = sN;
     float dy = 1.0 / n;
@@ -128,6 +129,33 @@ class PanelLebesgue {
                map(ig.curveY[i], 0, 1.05, axY0, axY1));
       }
       endShape();
+    }
+
+    // ── BAND HIGHLIGHT ─────────────────────────────
+    if (hoverPanel > 0 && hoverBand >= 0 && hoverBand < n) {
+      float hy0 = hoverBand * dy;
+      float hy1 = hy0 + dy;
+      float bTop = map(hy1, 0, 1.05, axY0, axY1);
+      float bBot = map(hy0, 0, 1.05, axY0, axY1);
+
+      fill(255, 255, 100, 50);
+      noStroke();
+      rect(axX0, bTop, axX1 - axX0, bBot - bTop);
+
+      stroke(255, 255, 100, 220);
+      strokeWeight(2);
+      line(axX0, bTop, axX1, bTop);
+      line(axX0, bBot, axX1, bBot);
+    }
+
+    if (hoverPanel == 2 && hoverBand >= 0) {
+      // Lebesgue self-hover → línea horizontal
+      float hyPix = map(mouseY, py + ph - PB, py + PT, 0, 1.05);
+      hyPix = constrain(hyPix, 0, 1.05);
+      float hyPx = map(hyPix, 0, 1.05, axY0, axY1);
+      stroke(255, 255, 150, 150);
+      strokeWeight(1);
+      line(axX0, hyPx, axX1, hyPx);
     }
 
     // ── Ejes ───────────────────────────────────────

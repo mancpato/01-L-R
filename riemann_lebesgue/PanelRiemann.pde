@@ -1,7 +1,8 @@
 class PanelRiemann {
 
   void draw(int px, int py, int pw, int ph,
-            Integrador ig, boolean showBounds, int sN, int sM, int fi) {
+            Integrador ig, boolean showBounds, int sN, int sM, int fi,
+            int hoverPanel, int hoverBand) {
 
     // ── Fondo del panel ────────────────────────────
     fill(11, 11, 28);              // #0b0b1c
@@ -90,6 +91,49 @@ class PanelRiemann {
                map(ig.curveY[i], 0, 1.05, axY0, axY1));
       }
       endShape();
+    }
+
+    // ── CROSS-HIGHLIGHT ────────────────────────────
+    if (hoverPanel == 2 && hoverBand >= 0) {
+      // Lebesgue hovered → resaltar rects cuyo fMid cae en banda k
+      float dy = 1.0 / sN;
+      float bandY0 = hoverBand * dy;
+      float bandY1 = bandY0 + dy;
+
+      for (int i = 0; i < ig.totalRects; i++) {
+        float fMid = ig.rects[i][2];
+        if (fMid >= bandY0 && fMid < bandY1) {
+          float x0  = ig.rects[i][0];
+          float x1  = ig.rects[i][1];
+          float rx0 = map(x0, 0, 1, axX0, axX1);
+          float rx1 = map(x1, 0, 1, axX0, axX1);
+          float ryB = map(0,    0, 1.05, axY0, axY1);
+          float ryM = map(fMid, 0, 1.05, axY0, axY1);
+
+          fill(255, 255, 100, 50);
+          noStroke();
+          rect(rx0, ryM, rx1 - rx0, ryB - ryM);
+          stroke(255, 255, 100, 200);
+          strokeWeight(1.5);
+          noFill();
+          rect(rx0, ryM, rx1 - rx0, ryB - ryM);
+        }
+      }
+    }
+
+    if (hoverPanel == 1 && hoverBand >= 0) {
+      // Riemann self-hover → línea vertical + punto en f(x)
+      float hx = constrain(map(mouseX, px + PL, px + pw - PR, 0, 1), 0, 1);
+      float hxPix = map(hx, 0, 1, axX0, axX1);
+      stroke(255, 255, 150, 150);
+      strokeWeight(1);
+      line(hxPix, axY1, hxPix, axY0);
+
+      float fy = constrain(funciones[fi].eval(hx), 0, 1.05);
+      float fyPix = map(fy, 0, 1.05, axY0, axY1);
+      fill(255, 255, 100, 180);
+      noStroke();
+      ellipse(hxPix, fyPix, 8, 8);
     }
 
     // ── Ejes ───────────────────────────────────────

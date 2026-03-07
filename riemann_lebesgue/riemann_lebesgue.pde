@@ -33,6 +33,12 @@ float   animSpeed  = 1.0;
 boolean showBounds = false;
 String  dragMode   = null;    // "N", "M", o null
 
+// ── HOVER CROSS-HIGHLIGHT ──────────────────────────────
+int     hoverPanel = 0;       // 0=ninguno, 1=Riemann, 2=Lebesgue
+int     hoverBand  = -1;      // índice de banda k
+float   hoverX     = -1;      // x ∈ [0,1] (solo panel Riemann)
+float   hoverY     = -1;      // f(x) o y del mouse
+
 // ── OBJETOS ──────────────────────────────────────────────────────
 FuncDef[]     funciones;
 Integrador    ig;
@@ -75,9 +81,10 @@ void draw() {
   drawSliderN();
 
   ig.rebuild(fi, sN, sM, funciones[fi]);
-  panelR.draw(P1X, PY, PW, PH, ig, showBounds, sN, sM, fi);
-  panelL.draw(P2X, PY, PW, PH, ig, sN, fi);
+  panelR.draw(P1X, PY, PW, PH, ig, showBounds, sN, sM, fi, hoverPanel, hoverBand);
+  panelL.draw(P2X, PY, PW, PH, ig, sN, fi, hoverPanel, hoverBand);
 
+  drawTooltip();
   drawSliderM();
   drawResults();
   drawLegend();
@@ -282,6 +289,49 @@ void drawLegend() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+//  TOOLTIP (hover cross-highlight)
+// ═══════════════════════════════════════════════════════════════════
+void drawTooltip() {
+  if (hoverPanel == 0 || hoverBand < 0) return;
+
+  float dy = 1.0 / sN;
+  String line1, line2;
+
+  if (hoverPanel == 1) {
+    line1 = "x=" + nf(hoverX, 1, 3) + "  f(x)=" + nf(hoverY, 1, 3);
+    line2 = "banda k=" + hoverBand + "  [" +
+            nf(hoverBand * dy, 1, 3) + ", " +
+            nf((hoverBand + 1) * dy, 1, 3) + "]";
+  } else {
+    float mu = ig.measures[hoverBand];
+    line1 = "banda k=" + hoverBand + "  [" +
+            nf(hoverBand * dy, 1, 3) + ", " +
+            nf((hoverBand + 1) * dy, 1, 3) + "]";
+    line2 = "\u03BC \u2248 " + nf(mu, 1, 4);
+  }
+
+  textSize(11);
+  float tw = max(textWidth(line1), textWidth(line2));
+  float th = 30;
+
+  float tx = mouseX + 15;
+  float ty = mouseY - 38;
+  if (tx + tw + 12 > width) tx = mouseX - tw - 20;
+  if (ty < 5) ty = mouseY + 15;
+
+  fill(10, 10, 20, 230);
+  stroke(255, 255, 100, 200);
+  strokeWeight(1);
+  rect(tx, ty, tw + 10, th, 4);
+
+  noStroke();
+  fill(255, 255, 150);
+  textAlign(LEFT, TOP);
+  text(line1, tx + 5, ty + 3);
+  text(line2, tx + 5, ty + 16);
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  INPUT
 // ═══════════════════════════════════════════════════════════════════
 void mousePressed() {
@@ -328,6 +378,40 @@ void keyPressed() {
   if (keyCode == RIGHT) { sN = min(40, sN + 1); ig.cacheKey = ""; }
   if (keyCode == DOWN)  { sM = max(1, sM - 1);  ig.cacheKey = ""; }
   if (keyCode == UP)    { sM = min(20, sM + 1); ig.cacheKey = ""; }
+}
+
+void mouseMoved() {
+  hoverPanel = 0;
+  hoverBand  = -1;
+  hoverX     = -1;
+  hoverY     = -1;
+
+  // Área de plotting (idéntica en ambos paneles)
+  float axX0 = PL;            // offset dentro del panel
+  float axX1 = PW - PR;
+  float axY0 = PH - PB;       // y=0 (abajo)
+  float axY1 = PT;            // y=1.05 (arriba)
+
+  // ── Panel Riemann ──────────────────────────────────
+  if (mouseX >= P1X + axX0 && mouseX <= P1X + axX1 &&
+      mouseY >= PY  + axY1 && mouseY <= PY  + axY0) {
+    hoverPanel = 1;
+    hoverX = constrain(map(mouseX, P1X + axX0, P1X + axX1, 0, 1), 0, 1);
+    hoverY = constrain(funciones[fi].eval(hoverX), 0, 1.0 - 1e-6);
+    float dy = 1.0 / sN;
+    hoverBand = constrain((int)(hoverY / dy), 0, sN - 1);
+    return;
+  }
+
+  // ── Panel Lebesgue ─────────────────────────────────
+  if (mouseX >= P2X + axX0 && mouseX <= P2X + axX1 &&
+      mouseY >= PY  + axY1 && mouseY <= PY  + axY0) {
+    hoverPanel = 2;
+    hoverY = constrain(map(mouseY, PY + axY0, PY + axY1, 0, 1.05), 0, 1.05);
+    float dy = 1.0 / sN;
+    hoverBand = constrain((int)(hoverY / dy), 0, sN - 1);
+    return;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
