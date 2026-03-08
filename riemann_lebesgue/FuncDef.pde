@@ -19,6 +19,8 @@ class FuncDef {
       case 1:  return sqrt(x);
       case 2:  return thomae(x);
       case 3:  return dirichletN(x, sN);  // sN global — spec: slider n controla D_n
+      case 4:  return sin(4 * PI * x) * sin(4 * PI * x);
+      case 5:  return (x < 1e-6) ? 0 : abs(x * sin(PI / x));
       default: return 0;
     }
   }

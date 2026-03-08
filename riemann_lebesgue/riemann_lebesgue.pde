@@ -1,67 +1,110 @@
-// ═══════════════════════════════════════════════════════════════════
-//  INTEGRAL DE RIEMANN  vs  INTEGRAL DE LEBESGUE
-//  Explorador Interactivo — f : [0,1] → ℝ
-//  Processing (Java) · UABCS
-// ═══════════════════════════════════════════════════════════════════
+/*** riemann_lebesgue.pde
+*
+*  INTEGRAL DE RIEMANN  vs  INTEGRAL DE LEBESGUE
+*  Explorador Interactivo — f : [0,1] → ℝ
+*  Processing (Java) · UABCS
+*
+* @author: Miguel Angel Norzagaray Cosío
+* @date: marzo de 2026
+*
+* Descripción:
+* Este sketch permite comparar la integral de Riemann y 
+* la integral de Lebesgue para algunas funciones. Ambas usan la misma función 
+* de integración (mismo integrador), pero muestran visualmente cómo 
+* se construyen las sumas de cada una.
+*
+* Todas las funciones están acotadas al intervalo [0,1]. 
+* Las funciones incluidas son:
+*  - f(x) = x²
+*  - f(x) = √x
+*  - f(x) = Thomae (f(p/q)=1/q, f(irrac.)=0)
+*  - f(x) = Dirichlet (f(Q)=1, f(ℝ\Q)=0) 
+*
+* El usuario puede ajustar el número de particiones (n) y 
+* sub-divisiones (m) para mejorar la precisión.
+*
+* Debiera usar 🎉 cuando una aproximación esté bien y un símbolo como
+* ⚠️ cuando no lo esté (por ejemplo, la suma de Riemann para Dirichlet no
+* converge a nada, pero la de Lebesgue sí converge a 0). Sin embargo, 
+* Processing no tiene soporte nativo para emojis, y usar imágenes sería un
+* poco complicado, así que por ahora solo muestro los números y dejo que el
+* usuario saque sus propias conclusiones. Quizás en una futura versión se me
+* ocurrar alguna forma de agregar esos símbolos de manera visual.
+*/ 
 
-// ── LIENZO ───────────────────────────────────────────────────────
+// Ventana
+// Me gusta la idea de una ventana que cambie de tamaño, pero la vida es 
+// demasiado corta.
 final int CW = 1200, CH = 800;
 
-// ── GEOMETRÍA DE PANELES ─────────────────────────────────────────
-final int PW = 520, PH = 400;
+// Nunca he sido partidario de los números mágicos, pero debo reconocer que 
+// en Processing a veces es más práctico usar coordenadas fijas para 
+// muchas cosas, en vez de complicarse la vida con cálculos relativos.
+
+// Paneles
+final int PW = 520, PH = 400; // ancho y alto de cada panel
 final int P1X = 20,  P2X = 660;
 final int PY  = 185;
 final int PL = 44, PR = 14, PT = 26, PB = 42;
 
-// ── SLIDERS ──────────────────────────────────────────────────────
+// Deslizadores (para m y n)
 final int SLX = 48;
 final int SLW = CW - 96;
 final int SL_N_Y = 138;
 final int SL_M_Y = PY + PH + 58;
 
-// ── MUESTREO ─────────────────────────────────────────────────────
-final int N_CURVE  = 3000;
-final int N_PREIMG = 4000;
+// Son más puntos de muestreo para que la curva de f se vea suave, 
+// y en realidad no afectan los cálculos de las integrales.
+// Si fuera la misma cantidad que los pixeles reales el aliasing haría 
+// que funciones como Thomae o Dirichlet se vean como 0.
+final int N_CURVE  = 3000; // puntos para dibujar la curva de f
+final int N_PREIMG = 4000; // puntos para muestrear preimágenes (Lebesgue)
 
-// ═══════════════════════════════════════════════════════════════════
 //  ESTADO GLOBAL
-// ═══════════════════════════════════════════════════════════════════
-int     fi         = 0;
-int     sN         = 8;
-int     sM         = 4;
-float   animSpeed  = 1.0;
-boolean showBounds = false;
+int     fi         = 0; // Función seleccionada
+int     sN         = 8; // número de particiones (n)
+int     sM         = 4; // número de sub-divisiones por partición (m)
+float   animSpeed  = 1.0; // velocidad de animación (no implementada en esta versión)
+boolean showBounds = false; // mostrar SumInf y SumSup de Riemann
 String  dragMode   = null;    // "N", "M", o null
 
-// ── HOVER CROSS-HIGHLIGHT ──────────────────────────────
+// Resaltado al pasar el mouse (hover), 
+// Estos son los valores iniciales, se actualizan en mouseMoved()
 int     hoverPanel = 0;       // 0=ninguno, 1=Riemann, 2=Lebesgue
 int     hoverBand  = -1;      // índice de banda k
 float   hoverX     = -1;      // x ∈ [0,1] (solo panel Riemann)
 float   hoverY     = -1;      // f(x) o y del mouse
 
-// ── OBJETOS ──────────────────────────────────────────────────────
+// Los objetos principales
 FuncDef[]     funciones;
-Integrador    ig;
+Integrador    ig; // Calcula sumas de Riemann y Lebesgue, con caching
+// El caching es importante porque el cálculo de la integral de Lebesgue
+// es costoso, y no queremos recalcularlo cada vez que se dibuja el panel, 
+// sino solo cuando cambian los parámetros relevantes (fi, sN, sM).
 PanelRiemann  panelR;
 PanelLebesgue panelL;
+// Es desafortunado que Riemann y Lebesgue coincidan en la misma letra con
+// Right y Left, pero bueno, así es la vida. Podría haber usado otras letras,
+// pero R y L son tan intuitivas para cada panel que no pude resistirme.
 
 // Cache de posiciones de botones (para detección de clics)
-int[][] btnFuncPos;           // [i][4] = {bx, by, bw, bh}
-int[] btnBoundsPos;           // {bx, by, bw, bh}
+int[][] btnFuncPos;  // [i][4] = {bx, by, bw, bh}
+int[] btnBoundsPos;  // {bx, by, bw, bh}
 
-// ═══════════════════════════════════════════════════════════════════
-//  SETUP / DRAW
-// ═══════════════════════════════════════════════════════════════════
-void setup() {
+void setup() 
+{
   size(1200, 800);
-  frameRate(60);
+  frameRate(60);  // No me crean y pongan 30 si quieren, pero con 60 se ve 
+                  // más fluida la interacción al mover los sliders.
   textFont(createFont("Courier New", 12));
 
   funciones = new FuncDef[] {
-    new FuncDef(0, "x\u00B2",      "Suave. RI = LI = 1/3.",   1.0/3, true),
-    new FuncDef(1, "\u221Ax",      "Suave. RI = LI = 2/3.",   2.0/3, true),
-    new FuncDef(2, "Thomae",       "f(p/q)=1/q, f(irrac.)=0", 0,     true),
-    new FuncDef(3, "Dirichlet",    "f(Q)=1, f(R\\Q)=0",       -1,    false)
+    new FuncDef(0, "x\u00B2",              "Suave. RI = LI = 1/3.",              1.0/3,  true),
+    new FuncDef(1, "\u221Ax",              "Suave. RI = LI = 2/3.",              2.0/3,  true),
+    new FuncDef(2, "Thomae",               "f(p/q)=1/q, f(irrac.)=0",            0,      true),
+    new FuncDef(3, "Dirichlet",            "f(Q)=1, f(R\\Q)=0",                 -1,      false),
+    new FuncDef(4, "sin\u00B2(4\u03C0x)",  "4 periodos. RI = LI = 1/2.",         0.5,    true),
+    new FuncDef(5, "|xsin(\u03C0/x)|",     "Oscila en 0. RI = LI \u2248 0.2817", 0.2817, true)
   };
 
   ig     = new Integrador();
@@ -72,7 +115,8 @@ void setup() {
   btnBoundsPos = new int[4];
 }
 
-void draw() {
+void draw() 
+{
   background(7, 7, 15);
 
   drawHeader();
@@ -90,10 +134,8 @@ void draw() {
   drawLegend();
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  UI — ENCABEZADO
-// ═══════════════════════════════════════════════════════════════════
-void drawHeader() {
+void drawHeader() 
+{
   noStroke();
   fill(210);
   textSize(16);
@@ -104,11 +146,9 @@ void drawHeader() {
   text("f : [0,1] \u2192 \u211D   |   Explorador Interactivo", CW / 2, 32);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  UI — BOTONES DE FUNCIÓN
-// ═══════════════════════════════════════════════════════════════════
-void drawFuncButtons() {
-  int bw = 118, bh = 25, gap = 10;
+void drawFuncButtons() 
+{
+  int bw = 105, bh = 25, gap = 8;
   int tw = funciones.length * bw + (funciones.length - 1) * gap;
   int sx = CW / 2 - tw / 2;
   int sy = 50;
@@ -118,7 +158,7 @@ void drawFuncButtons() {
     btnFuncPos[i] = new int[] { bx, sy, bw, bh };
 
     boolean active = (i == fi);
-    color c = stripColor(i * 3, 12, 255);
+    color c = stripColor(i * 2, 12, 255);
 
     if (active) {
       fill(red(c), green(c), blue(c), 210);
@@ -139,10 +179,8 @@ void drawFuncButtons() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  UI — BOTÓN SUP/INF
-// ═══════════════════════════════════════════════════════════════════
-void drawBoundsButton() {
+void drawBoundsButton() 
+{
   int bw = 128, bh = 20;
   int bx = CW / 2 - bw / 2;
   int by = 82;
@@ -165,17 +203,17 @@ void drawBoundsButton() {
   text("[ mostrar sup / inf ]", bx + bw / 2, by + bh / 2);
 }
 
-// ═══════════════════════════════════════════════════════════════════
 //  UI — SLIDERS
-// ═══════════════════════════════════════════════════════════════════
-void drawSliderN() {
+void drawSliderN() 
+{
   float pos = map(sN, 2, 40, SLX, SLX + SLW);
 
   noStroke();
   fill(120);
   textSize(13);
   textAlign(LEFT, CENTER);
-  text("n = particiones  [ eje X \u2192 Riemann  |  eje Y \u2192 Lebesgue ]", SLX, SL_N_Y - 14);
+  text("n = particiones  [ eje X \u2192 Riemann  |  eje Y \u2192 Lebesgue ]", 
+              SLX, SL_N_Y - 14);
 
   // Riel
   fill(38, 38, 68);
@@ -195,7 +233,8 @@ void drawSliderN() {
   text("n = " + sN, SLX + SLW, SL_N_Y - 14);
 }
 
-void drawSliderM() {
+void drawSliderM() 
+{
   float pos = map(sM, 1, 20, SLX, SLX + SLW);
 
   noStroke();
@@ -222,10 +261,9 @@ void drawSliderM() {
   text("m = " + sM, SLX + SLW, SL_M_Y - 14);
 }
 
-// ═══════════════════════════════════════════════════════════════════
 //  RESULTADOS NUMÉRICOS
-// ═══════════════════════════════════════════════════════════════════
-void drawResults() {
+void drawResults() 
+{
   int y = SL_M_Y + 36;
 
   // Sumas
@@ -257,7 +295,7 @@ void drawResults() {
     textSize(14);
     text("Valor exacto: " + nf(exact, 1, 8), CW / 2, y + 8);
   } else {
-    // Dirichlet: no Riemann-integrable
+    // Dirichlet: no Riemann-integrable, pero Lebesgue SÍ → 0
     fill(200, 80, 50);
     textSize(13);
     text("\u2211_sup = " + nf(ig.rSumSup, 1, 4) + "   \u2211_inf = " + nf(ig.rSumInf, 1, 4)
@@ -265,6 +303,9 @@ void drawResults() {
          P1X + PW / 2, y + 18);
     fill(50, 180, 100);
     text("LI = 0  (\u03BC(\u211A) = 0)", P2X + PW / 2, y + 18);
+    fill(170);
+    textSize(14);
+    text("Valor exacto (Lebesgue): 0", CW / 2, y + 8);
   }
 
   // Info de la función
@@ -274,10 +315,9 @@ void drawResults() {
   text(f.info, CW / 2, y + 56);
 }
 
-// ═══════════════════════════════════════════════════════════════════
 //  LEYENDA CONCEPTUAL
-// ═══════════════════════════════════════════════════════════════════
-void drawLegend() {
+void drawLegend() 
+{
   int ly = SL_M_Y + 76;
   noStroke();
   fill(120);
@@ -288,10 +328,9 @@ void drawLegend() {
        CW / 2, ly);
 }
 
-// ═══════════════════════════════════════════════════════════════════
 //  TOOLTIP (hover cross-highlight)
-// ═══════════════════════════════════════════════════════════════════
-void drawTooltip() {
+void drawTooltip() 
+{
   if (hoverPanel == 0 || hoverBand < 0) return;
 
   float dy = 1.0 / sN;
@@ -331,10 +370,8 @@ void drawTooltip() {
   text(line2, tx + 5, ty + 16);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  INPUT
-// ═══════════════════════════════════════════════════════════════════
-void mousePressed() {
+void mousePressed() 
+{
   // Botones de función
   for (int i = 0; i < btnFuncPos.length; i++) {
     int bx = btnFuncPos[i][0], by = btnFuncPos[i][1];
@@ -357,7 +394,8 @@ void mousePressed() {
   if (abs(mouseY - SL_M_Y) < 14 && mouseX >= SLX && mouseX <= SLX + SLW) dragMode = "M";
 }
 
-void mouseDragged() {
+void mouseDragged() 
+{
   float cx = constrain(mouseX, SLX, SLX + SLW);
   if ("N".equals(dragMode)) {
     sN = round(map(cx, SLX, SLX + SLW, 2, 40));
@@ -369,30 +407,34 @@ void mouseDragged() {
   }
 }
 
-void mouseReleased() {
+void mouseReleased() 
+{
   dragMode = null;
 }
 
-void keyPressed() {
+void keyPressed() 
+{
   if (keyCode == LEFT)  { sN = max(2, sN - 1);  ig.cacheKey = ""; }
   if (keyCode == RIGHT) { sN = min(40, sN + 1); ig.cacheKey = ""; }
   if (keyCode == DOWN)  { sM = max(1, sM - 1);  ig.cacheKey = ""; }
   if (keyCode == UP)    { sM = min(20, sM + 1); ig.cacheKey = ""; }
 }
 
-void mouseMoved() {
-  hoverPanel = 0;
+void mouseMoved() 
+{
+  // Estos valores es inician así para indicar que no hay selección
+  // y se actualizan si el mouse está sobre alguno de los paneles.
+  hoverPanel = 0; 
   hoverBand  = -1;
   hoverX     = -1;
   hoverY     = -1;
 
-  // Área de plotting (idéntica en ambos paneles)
-  float axX0 = PL;            // offset dentro del panel
-  float axX1 = PW - PR;
+  float axX0 = PL;            // 
+  float axX1 = PW - PR;       // x=0 (izq) a x=1 (der)
   float axY0 = PH - PB;       // y=0 (abajo)
   float axY1 = PT;            // y=1.05 (arriba)
 
-  // ── Panel Riemann ──────────────────────────────────
+  // Panel Riemann 
   if (mouseX >= P1X + axX0 && mouseX <= P1X + axX1 &&
       mouseY >= PY  + axY1 && mouseY <= PY  + axY0) {
     hoverPanel = 1;
@@ -403,7 +445,7 @@ void mouseMoved() {
     return;
   }
 
-  // ── Panel Lebesgue ─────────────────────────────────
+  // Panel Lebesgue 
   if (mouseX >= P2X + axX0 && mouseX <= P2X + axX1 &&
       mouseY >= PY  + axY1 && mouseY <= PY  + axY0) {
     hoverPanel = 2;
@@ -414,11 +456,10 @@ void mouseMoved() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  PALETA DE COLORES (compartida por ambos paneles)
-// ═══════════════════════════════════════════════════════════════════
-// Gradiente azul(220°) → rojo(0°) via cian, verde, amarillo
-color stripColor(int k, int n, int alpha) {
+// Colores para las bandas y rectángulos
+// Gradiente azul al rojo pasando por cian, verde, amarillo
+color stripColor(int k, int n, int alpha) 
+{
   float t = (n > 1) ? (float) k / (n - 1) : 0;
   float h = 220 * (1 - t);          // grados HLS
   float hr = h / 60.0;

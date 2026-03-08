@@ -74,10 +74,13 @@ class PanelLebesgue {
     // ── Barras de medida μ (derecha del panel) ─────
     float mX = axX1 + 4;
     int mMax = 28;
+    float maxMu = 0;
+    for (int k = 0; k < n; k++) maxMu = max(maxMu, ig.measures[k]);
+    if (maxMu < 1e-9) maxMu = 1;
     for (int k = 0; k < n; k++) {
       float y0 = k * dy;
       float y1 = y0 + dy;
-      float bw = constrain(ig.measures[k] * mMax * n, 0, mMax);
+      float bw = (ig.measures[k] / maxMu) * mMax;
       color c = stripColor(k, n, 200);
       fill(c);
       noStroke();
