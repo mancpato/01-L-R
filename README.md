@@ -51,7 +51,7 @@ Es el momento central del simulador: la conexión entre dominio y codominio se v
 | 2 | Thomae | Discontinua en Q (densa) | ✓ | ✓ | 0 |
 | 3 | Dirichlet | Patologica | ✗ | ✓ | LI = 0 |
 | 4 | sin²(4πx) | Oscilatoria suave | ✓ | ✓ | 1/2 |
-| 5 | \|x·sin(π/x)\| | Oscilatoria singular en 0 | ✓ | ✓ | ~0.2811 |
+| 5 | \|x·sin(π/x)\| | Oscilatoria singular en 0 | ✓ | ✓ | ~0.2932 |
 
 **Dirichlet** es el caso clave: la suma superior de Riemann es siempre 1
 y la inferior siempre 0 — el gap nunca cierra sin importar cuánto aumente n.
