@@ -51,7 +51,7 @@ Es el momento central del simulador: la conexión entre dominio y codominio se v
 | 2 | Thomae | Discontinua en Q (densa) | ✓ | ✓ | 0 |
 | 3 | Dirichlet | Patologica | ✗ | ✓ | LI = 0 |
 | 4 | sin²(4πx) | Oscilatoria suave | ✓ | ✓ | 1/2 |
-| 5 | \|x·sin(π/x)\| | Oscilatoria singular en 0 | ✓ | ✓ | ~0.2817 |
+| 5 | \|x·sin(π/x)\| | Oscilatoria singular en 0 | ✓ | ✓ | ~0.2811 |
 
 **Dirichlet** es el caso clave: la suma superior de Riemann es siempre 1
 y la inferior siempre 0 — el gap nunca cierra sin importar cuánto aumente n.
@@ -80,7 +80,7 @@ Lebesgue integra limpiamente porque mu(Q) = 0.
 
 5. **Singularidad oscilatoria** — Selecciona |x·sin(π/x)| y aumenta m.
    Las oscilaciones densas cerca de x=0 requieren mayor subdivision
-   para capturar bien la integral. Convergencia mas lenta que las continuas.
+   para capturar bien la integral. Convergencia mas lenta que las otras funciones.
 
 ---
 
