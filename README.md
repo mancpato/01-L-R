@@ -7,7 +7,7 @@
 La diferencia entre ambas integrales no es computacional sino epistemológica:
 **Riemann particiona el dominio (eje X) — Lebesgue particiona el codominio (eje Y).**
 Este simulador hace esa diferencia visible e interactiva.
-
+![Riemann vs Lebesgue — UABCS](Riemann-Lebesgue.png)
 ---
 
 ## Instalación y ejecución
