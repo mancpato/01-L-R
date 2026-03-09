@@ -64,7 +64,7 @@ final int N_PREIMG = 4000; // puntos para muestrear preimágenes (Lebesgue)
 int     fi         = 0; // Función seleccionada
 int     sN         = 8; // número de particiones (n)
 int     sM         = 4; // número de sub-divisiones por partición (m)
-float   animSpeed  = 1.0; // velocidad de animación (no implementada en esta versión)
+float   animSpeed  = 1.0; // Idea a futuro
 boolean showBounds = false; // mostrar SumInf y SumSup de Riemann
 String  dragMode   = null;    // "N", "M", o null
 
@@ -100,11 +100,11 @@ void setup()
 
   funciones = new FuncDef[] {
     new FuncDef(0, "x\u00B2",              "Suave. RI = LI = 1/3.",              1.0/3,  true),
-    new FuncDef(1, "\u221Ax",              "Suave. RI = LI = 2/3.",              2.0/3,  true),
+    new FuncDef(1, "sqrt(x)",             "Suave. RI = LI = 2/3.",              2.0/3,  true),
     new FuncDef(2, "Thomae",               "f(p/q)=1/q, f(irrac.)=0",            0,      true),
     new FuncDef(3, "Dirichlet",            "f(Q)=1, f(R\\Q)=0",                 -1,      false),
-    new FuncDef(4, "sin\u00B2(4\u03C0x)",  "4 periodos. RI = LI = 1/2.",         0.5,    true),
-    new FuncDef(5, "|xsin(\u03C0/x)|",     "Oscila en 0. RI = LI \u2248 0.2817", 0.2817, true)
+    new FuncDef(4, "sin\u00B2(4pi*x)",     "4 periodos. RI = LI = 1/2. Pto. medio es exacto por simetria.", 0.5, true),
+    new FuncDef(5, "|xsin(pi/x)|",        "Oscila en 0. RI = LI ~ 0.2932",     0.2932, true)
   };
 
   ig     = new Integrador();
@@ -141,9 +141,9 @@ void drawHeader()
   textSize(16);
   textAlign(CENTER, TOP);
   text("INTEGRAL DE RIEMANN   vs   INTEGRAL DE LEBESGUE", CW / 2, 12);
-  fill(100);
+  fill(140);
   textSize(14);
-  text("f : [0,1] \u2192 \u211D   |   Explorador Interactivo", CW / 2, 32);
+  text("f : [0,1] -> R   |   Explorador Interactivo", CW / 2, 32);
 }
 
 void drawFuncButtons() 
@@ -209,10 +209,10 @@ void drawSliderN()
   float pos = map(sN, 2, 40, SLX, SLX + SLW);
 
   noStroke();
-  fill(120);
+  fill(150);
   textSize(13);
   textAlign(LEFT, CENTER);
-  text("n = particiones  [ eje X \u2192 Riemann  |  eje Y \u2192 Lebesgue ]", 
+  text("n = particiones  [ eje X -> Riemann  |  eje Y -> Lebesgue ]",
               SLX, SL_N_Y - 14);
 
   // Riel
@@ -238,7 +238,7 @@ void drawSliderM()
   float pos = map(sM, 1, 20, SLX, SLX + SLW);
 
   noStroke();
-  fill(120);
+  fill(150);
   textSize(13);
   textAlign(LEFT, CENTER);
   text("m = sub-divisiones por partici\u00F3n  [ n\u00D7m rect\u00E1ngulos en Riemann / mayor precisi\u00F3n en Lebesgue ]", SLX, SL_M_Y - 14);
@@ -266,9 +266,8 @@ void drawResults()
 {
   int y = SL_M_Y + 36;
 
-  // Sumas
   noStroke();
-  fill(190);
+  fill(190); 
   textSize(13);
   textAlign(CENTER, TOP);
 
@@ -278,10 +277,10 @@ void drawResults()
   } else {
     rLabel = nf(ig.rSumMid, 1, 6);
   }
-  text("\u03A3 Riemann \u2248  " + rLabel, P1X + PW / 2, y-5);
-  text("\u03A3 Lebesgue \u2248  " + nf(ig.lSum, 1, 6), P2X + PW / 2, y-5);
+  text("Sum Riemann ~  " + rLabel, P1X + PW / 2, y-5);
+  text("Sum Lebesgue ~  " + nf(ig.lSum, 1, 6), P2X + PW / 2, y-5);
 
-  // Error respecto al valor exacto
+  // Error con respecto al valor exacto
   FuncDef f = funciones[fi];
   if (f.riemannOK) {
     float exact = f.exacta;
@@ -298,18 +297,18 @@ void drawResults()
     // Dirichlet: no Riemann-integrable, pero Lebesgue SÍ → 0
     fill(200, 80, 50);
     textSize(13);
-    text("\u2211_sup = " + nf(ig.rSumSup, 1, 4) + "   \u2211_inf = " + nf(ig.rSumInf, 1, 4)
+    text("Sum_sup = " + nf(ig.rSumSup, 1, 4) + "   Sum_inf = " + nf(ig.rSumInf, 1, 4)
          + "   gap = " + nf(ig.rSumSup - ig.rSumInf, 1, 4),
          P1X + PW / 2, y + 18);
     fill(50, 180, 100);
-    text("LI = 0  (\u03BC(\u211A) = 0)", P2X + PW / 2, y + 18);
+    text("LI = 0  (mu(Q) = 0)", P2X + PW / 2, y + 18);
     fill(170);
     textSize(14);
     text("Valor exacto (Lebesgue): 0", CW / 2, y + 8);
   }
 
   // Info de la función
-  fill(140);
+  fill(160);
   textSize(13);
   textAlign(CENTER, TOP);
   text(f.info, CW / 2, y + 56);
@@ -320,11 +319,11 @@ void drawLegend()
 {
   int ly = SL_M_Y + 76;
   noStroke();
-  fill(120);
+  fill(150);
   textSize(13);
   textAlign(CENTER, TOP);
-  text("Riemann: particiona el DOMINIO (eje X) \u2014 rect\u00E1ngulos verticales   |   "
-     + "Lebesgue: particiona el CODOMINIO (eje Y) \u2014 f medida por longitud de preim\u00E1genes (\u03BC)",
+  text("Riemann: particiona el DOMINIO (eje X) -- rect\u00E1ngulos verticales   |   "
+     + "Lebesgue: particiona el CODOMINIO (eje Y) -- f medida por longitud de preim\u00E1genes (mu)",
        CW / 2, ly);
 }
 
@@ -346,7 +345,7 @@ void drawTooltip()
     line1 = "banda k=" + hoverBand + "  [" +
             nf(hoverBand * dy, 1, 3) + ", " +
             nf((hoverBand + 1) * dy, 1, 3) + "]";
-    line2 = "\u03BC \u2248 " + nf(mu, 1, 4);
+    line2 = "mu ~ " + nf(mu, 1, 4);
   }
 
   textSize(11);

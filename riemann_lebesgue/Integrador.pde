@@ -1,3 +1,15 @@
+/**
+ * Este módulo aproxima la integral de una función f(x) en [0,1] usando:
+ * - Riemann: con altura en el punto medio, 
+              supremo o ínfimo de cada subintervalo.
+ * - Lebesgue: clasificando puntos por su valor f(x) y sumando 
+               medidas (frecuencias) de cada banda.
+ * La función f(x) se define en FuncDef.pde
+*
+* Tal vez debieran ser dos integradores separados, pero como comparten f(x) y
+* ya está precalculada, así es más fácil.
+*/ 
+
 class Integrador {
   String cacheKey = "";
   float rSumMid, rSumSup, rSumInf;
@@ -17,12 +29,13 @@ class Integrador {
   float[] classifyX;
   int[] classifyK;
 
-  void rebuild(int fi, int n, int m, FuncDef f) {
+  void rebuild(int fi, int n, int m, FuncDef f) 
+  {
     String key = fi + "-" + n + "-" + m;
-    if (key.equals(cacheKey)) return;
+    if (key.equals(cacheKey)) 
+      return;
     cacheKey = key;
 
-    // ── Curva ──────────────────────────────────────
     curveX = new float[N_CURVE + 1];
     curveY = new float[N_CURVE + 1];
     for (int i = 0; i <= N_CURVE; i++) {
@@ -31,7 +44,7 @@ class Integrador {
       curveY[i] = constrain(f.eval(x), 0, 1.05);
     }
 
-    // ── Rectángulos Riemann ────────────────────────
+    // Riemann
     totalRects = n * m;
     rects = new float[totalRects][6];
     rSumMid = 0;
@@ -60,7 +73,7 @@ class Integrador {
       rSumInf += fInf / totalRects;
     }
 
-    // ── Lebesgue ───────────────────────────────────
+    // Lebesgue
     numBands = n;
     float dy = 1.0 / n;
     int ns = max(N_PREIMG * m, n * 50);
@@ -77,27 +90,33 @@ class Integrador {
       classifyX[j] = x;
       classifyK[j] = k;
     }
-    for (int k = 0; k < n; k++) measures[k] /= (ns + 1);
+    for (int k = 0; k < n; k++) 
+      measures[k] /= (ns + 1);
 
     lSum = 0;
-    for (int k = 0; k < n; k++) {
+    for (int k = 0; k < n; k++) 
       lSum += (k * dy) * measures[k];
-    }
     muNivel1 = measures[n - 1];
   }
 
   // Supremo e ínfimo numérico en [a,b] con 60 muestras
-  float[] supInfOn(float a, float b, FuncDef f) {
-    float s = -1e30, inf = 1e30;
+  float[] supInfOn(float a, float b, FuncDef f) 
+  {
+    float sup = -1e30, inf = 1e30;
     int samples = 60;
     for (int k = 0; k <= samples; k++) {
       float x = a + (b - a) * k / samples;
       float v = constrain(f.eval(x), 0, 1.05);
-      if (v > s) s = v;
-      if (v < inf) inf = v;
+      if (v > sup) 
+        sup = v;
+      if (v < inf) 
+        inf = v;
     }
     // Para Dirichlet: siempre hay racionales e irracionales en cada intervalo
-    if (f.id == 3) { s = 1; inf = 0; }
-    return new float[] { s, inf };
+    if (f.id == 3) { 
+      sup = 1; 
+      inf = 0; 
+    }
+    return new float[] { sup, inf };
   }
 }

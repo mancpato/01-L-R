@@ -143,7 +143,7 @@ class PanelRiemann {
     line(axX0, axY0, axX0, axY1);  // eje Y
 
     noStroke();
-    fill(140);
+    fill(160);
     textSize(11);
 
     // Eje X: ticks y labels
@@ -177,7 +177,7 @@ class PanelRiemann {
     textAlign(CENTER, TOP);
     text("RIEMANN", px + pw / 2, py + 6);
 
-    fill(120);
+    fill(150);
     textSize(12);
     String lbl = "n\u00D7m = " + (sN * sM) + " rect\u00E1ngulos  |  regla del punto medio";
     text(lbl, px + pw / 2, py + ph - 18);

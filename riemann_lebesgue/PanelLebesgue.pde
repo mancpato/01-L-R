@@ -66,7 +66,7 @@ class PanelLebesgue {
       line(sx, barY, sx, barY + barH - 2);
     }
     noStroke();
-    fill(60);
+    fill(100);
     textSize(7.5);
     textAlign(LEFT, TOP);
     text("preimagen", axX0, barY + barH + 2);
@@ -89,10 +89,10 @@ class PanelLebesgue {
       rect(mX, bTop, bw, bBot - bTop);
     }
     noStroke();
-    fill(60);
+    fill(100);
     textSize(7.5);
     textAlign(LEFT, TOP);
-    text("\u03BC", mX, axY1);
+    text("mu", mX, axY1);
 
     // ── Curva f(x) ─────────────────────────────────
     if (fi == 2) {
@@ -168,7 +168,7 @@ class PanelLebesgue {
     line(axX0, axY0, axX0, axY1);
 
     noStroke();
-    fill(140);
+    fill(160);
     textSize(11);
 
     // Eje X
@@ -202,8 +202,8 @@ class PanelLebesgue {
     textAlign(CENTER, TOP);
     text("LEBESGUE", px + pw / 2, py + 6);
 
-    fill(120);
+    fill(150);
     textSize(12);
-    text("n = " + n + " bandas en Y  |  barra derecha = \u03BC(preimagen)", px + pw / 2, py + ph - 18);
+    text("n = " + n + " bandas en Y  |  barra derecha = mu(preimagen)", px + pw / 2, py + ph - 18);
   }
 }
