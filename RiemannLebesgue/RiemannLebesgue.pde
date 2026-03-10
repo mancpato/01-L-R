@@ -5,6 +5,7 @@
 *  Processing (Java) · UABCS
 *
 * @author: Miguel Angel Norzagaray Cosío
+* @email: manc@uabcs.mx
 * @date: marzo de 2026
 *
 * Descripción:
