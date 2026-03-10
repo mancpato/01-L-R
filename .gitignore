@@ -37,3 +37,5 @@ Thumbs.db
 *.ods
 *.odp
 
+.Rhistory
+.RData

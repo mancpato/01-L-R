@@ -19,6 +19,12 @@
 *  - f(x) = √x
 *  - f(x) = Thomae (f(p/q)=1/q, f(irrac.)=0)
 *  - f(x) = Dirichlet (f(Q)=1, f(ℝ\Q)=0) 
+*  - f(x) = |sin²(4πx)|
+*  - f(x) = |x sin(π/x)| (oscilante en 0)
+// En la práctica es más estable aproximar la integral con el cambio de
+// variable t=1/x, pero bueno, esta función es solo para mostrar un caso
+// f= @(t) abs(sin(t*pi))./(t.*t.*t)
+// integral(f,1,inf)
 *
 * El usuario puede ajustar el número de particiones (n) y 
 * sub-divisiones (m) para mejorar la precisión.
@@ -99,14 +105,12 @@ void setup()
   textFont(createFont("Courier New", 12));
 
   funciones = new FuncDef[] {
-    new FuncDef(0, "x\u00B2",              "Suave. RI = LI = 1/3.",              1.0/3,  true),
-    new FuncDef(1, "sqrt(x)",             "Suave. RI = LI = 2/3.",              2.0/3,  true),
-    new FuncDef(2, "Thomae",               "f(p/q)=1/q, f(irrac.)=0",            0,      true),
-    new FuncDef(3, "Dirichlet",            "f(Q)=1, f(R\\Q)=0",                 -1,      false),
-    new FuncDef(4, "sin\u00B2(4pi*x)",     "4 periodos. RI = LI = 1/2. Pto. medio es exacto por simetria.", 0.5, true),
-    new FuncDef(5, "|xsin(pi/x)|",        "Oscila en 0. RI = LI ~ 0.28114",    0.2932, true)
-// f= @(x) abs(sin(x*pi))./(x.*x.*x)
-// integral(f,1,inf)
+    new FuncDef(0, "x\u00B2",         "Suave. RI = LI = 1/3.",              1.0/3,  true),
+    new FuncDef(1, "sqrt(x)",         "Suave. RI = LI = 2/3.",              2.0/3,  true),
+    new FuncDef(2, "Thomae",          "f(p/q)=1/q, f(irrac.)=0",            0,      true),
+    new FuncDef(3, "Dirichlet",       "f(Q)=1, f(R\\Q)=0",                 -1,      false),
+    new FuncDef(4, "sin\u00B2(4pi*x)","4 periodos. RI = LI = 1/2. Pto. medio es exacto por simetria.", 0.5, true),
+    new FuncDef(5, "|xsin(pi/x)|",    "Oscila en 0. RI = LI ~ 0.28114",    0.29318933, true)
   };
 
   ig     = new Integrador();

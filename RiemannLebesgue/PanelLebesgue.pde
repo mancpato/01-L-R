@@ -1,3 +1,12 @@
+/**
+  * PanelLebesgue.pde
+  * Visualización del método de Lebesgue (barras horizontales).
+  * 
+  * Parte del sketch RiemannLLebesgue
+  * 
+  */
+
+
 class PanelLebesgue {
 
   void draw(int px, int py, int pw, int ph, Integrador ig, int sN, int fi,
@@ -6,19 +15,19 @@ class PanelLebesgue {
     int n = sN;
     float dy = 1.0 / n;
 
-    // ── Fondo del panel ────────────────────────────
+    // Fondo del panel
     fill(10, 22, 11);              // #0a160b
     stroke(37, 69, 42);            // #25452a
     strokeWeight(1);
     rect(px, py, pw, ph, 4);
 
-    // ── Sistema de coordenadas ─────────────────────
+    // Sistema de coordenadas
     float axX0 = px + PL;
     float axX1 = px + pw - PR;
     float axY0 = py + ph - PB;    // y=0 (abajo)
     float axY1 = py + PT;         // y=1.05 (arriba)
 
-    // ── Cuadrícula sutil ───────────────────────────
+    // Cuadrícula sutil
     stroke(255, 255, 255, 7);
     strokeWeight(0.5);
     for (int i = 1; i < 4; i++) {
@@ -28,7 +37,7 @@ class PanelLebesgue {
       line(axX0, gy, axX1, gy);
     }
 
-    // ── Bandas horizontales (partición del eje Y) ──
+    // Bandas horizontales (partición del eje Y)
     for (int k = 0; k < n; k++) {
       float y0 = k * dy;
       float y1 = y0 + dy;
@@ -51,7 +60,7 @@ class PanelLebesgue {
     strokeWeight(0.7);
     line(axX0, map(1.0, 0, 1.05, axY0, axY1), axX1, map(1.0, 0, 1.05, axY0, axY1));
 
-    // ── Barra de preimagen (debajo del eje X) ──────
+    // Barra de preimagen (debajo del eje X)
     int barH = 16;
     float barY = axY0 + 5;
     int totalSamples = ig.classifyX.length;
@@ -71,7 +80,7 @@ class PanelLebesgue {
     textAlign(LEFT, TOP);
     text("preimagen", axX0, barY + barH + 2);
 
-    // ── Barras de medida μ (derecha del panel) ─────
+    // Barras de medida μ (derecha del panel)
     float mX = axX1 + 4;
     int mMax = 28;
     float maxMu = 0;
@@ -94,7 +103,7 @@ class PanelLebesgue {
     textAlign(LEFT, TOP);
     text("mu", mX, axY1);
 
-    // ── Curva f(x) ─────────────────────────────────
+    // Curva f(x)
     if (fi == 2) {
       // Thomae: línea base y=0 + puntos
       stroke(255, 235, 70, 55); strokeWeight(1);
@@ -134,7 +143,7 @@ class PanelLebesgue {
       endShape();
     }
 
-    // ── BAND HIGHLIGHT ─────────────────────────────
+    // BAND HIGHLIGHT
     if (hoverPanel > 0 && hoverBand >= 0 && hoverBand < n) {
       float hy0 = hoverBand * dy;
       float hy1 = hy0 + dy;
@@ -152,7 +161,7 @@ class PanelLebesgue {
     }
 
     if (hoverPanel == 2 && hoverBand >= 0) {
-      // Lebesgue self-hover → línea horizontal
+      // Lebesgue resaltado línea horizontal
       float hyPix = map(mouseY, py + ph - PB, py + PT, 0, 1.05);
       hyPix = constrain(hyPix, 0, 1.05);
       float hyPx = map(hyPix, 0, 1.05, axY0, axY1);
@@ -161,7 +170,7 @@ class PanelLebesgue {
       line(axX0, hyPx, axX1, hyPx);
     }
 
-    // ── Ejes ───────────────────────────────────────
+    // Ejes
     stroke(150);
     strokeWeight(1);
     line(axX0, axY0, axX1, axY0);
@@ -195,7 +204,7 @@ class PanelLebesgue {
       noStroke();
     }
 
-    // ── Etiqueta del panel ─────────────────────────
+    // Etiqueta del panel
     noStroke();
     fill(200);
     textSize(14);

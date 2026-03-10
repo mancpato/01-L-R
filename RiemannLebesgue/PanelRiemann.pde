@@ -1,22 +1,30 @@
+/**
+  * PanelRiemann.pde
+  * Visualización del método de Riemann (rectángulos de punto medio).
+  * 
+  * Parte del sketch RiemannLLebesgue
+  * 
+  */
+
 class PanelRiemann {
 
   void draw(int px, int py, int pw, int ph,
             Integrador ig, boolean showBounds, int sN, int sM, int fi,
             int hoverPanel, int hoverBand) {
 
-    // ── Fondo del panel ────────────────────────────
+    // Fondo del panel 
     fill(11, 11, 28);              // #0b0b1c
     stroke(37, 37, 69);            // #252545
     strokeWeight(1);
     rect(px, py, pw, ph, 4);
 
-    // ── Sistema de coordenadas ─────────────────────
+    // Sistema de coordenadas 
     float axX0 = px + PL;
     float axX1 = px + pw - PR;
     float axY0 = py + ph - PB;    // y=0 (abajo)
     float axY1 = py + PT;         // y=1.05 (arriba)
 
-    // ── Cuadrícula sutil ───────────────────────────
+    // Cuadrícula sutil
     stroke(255, 255, 255, 7);
     strokeWeight(0.5);
     for (int i = 1; i < 4; i++) {
@@ -26,7 +34,7 @@ class PanelRiemann {
       line(axX0, gy, axX1, gy);
     }
 
-    // ── Rectángulos de Riemann (punto medio) ───────
+    //  Rectángulos de Riemann (punto medio) 
     for (int i = 0; i < ig.totalRects; i++) {
       float x0   = ig.rects[i][0];
       float x1   = ig.rects[i][1];
@@ -45,7 +53,7 @@ class PanelRiemann {
       rect(rx0, ryM, rx1 - rx0, ryB - ryM);
     }
 
-    // ── Separadores de partición gruesa ─────────────
+    // Separadores de partición gruesa 
     stroke(255, 255, 255, 50);
     strokeWeight(1);
     for (int i = 0; i <= sN; i++) {
@@ -53,7 +61,7 @@ class PanelRiemann {
       line(rx, axY0, rx, axY1);
     }
 
-    // ── Curva f(x) ─────────────────────────────────
+    // Curva f(x)
     if (fi == 2) {
       // Thomae: línea base y=0 + puntos
       stroke(255, 235, 70, 55); strokeWeight(1);
@@ -93,7 +101,7 @@ class PanelRiemann {
       endShape();
     }
 
-    // ── CROSS-HIGHLIGHT ────────────────────────────
+    // CROSS-HIGHLIGHT
     if (hoverPanel == 2 && hoverBand >= 0) {
       // Lebesgue hovered → resaltar rects cuyo fMid cae en banda k
       float dy = 1.0 / sN;
@@ -122,7 +130,7 @@ class PanelRiemann {
     }
 
     if (hoverPanel == 1 && hoverBand >= 0) {
-      // Riemann self-hover → línea vertical + punto en f(x)
+      // Riemann self-hover línea vertical + punto en f(x)
       float hx = constrain(map(mouseX, px + PL, px + pw - PR, 0, 1), 0, 1);
       float hxPix = map(hx, 0, 1, axX0, axX1);
       stroke(255, 255, 150, 150);
@@ -136,7 +144,7 @@ class PanelRiemann {
       ellipse(hxPix, fyPix, 8, 8);
     }
 
-    // ── Ejes ───────────────────────────────────────
+    // Ejes
     stroke(150);
     strokeWeight(1);
     line(axX0, axY0, axX1, axY0);  // eje X
@@ -170,7 +178,7 @@ class PanelRiemann {
       noStroke();
     }
 
-    // ── Etiqueta del panel ─────────────────────────
+    // Etiqueta del panel
     noStroke();
     fill(200);
     textSize(14);
