@@ -1,7 +1,8 @@
 # Riemann vs. Lebesgue — Explorador Interactivo
 
 **Universidad Autónoma de Baja California Sur (UABCS) · Marzo 2026**  
-**Autor:** Miguel Angel Norzagaray Cosío  
+**Autor:** Miguel Angel Norzagaray Cosío
+**email:** manc@uabcs.mx
 **Plataforma:** Processing 4 (Java)
 
 La diferencia entre ambas integrales no es computacional sino epistemológica:
