@@ -110,7 +110,7 @@ void setup()
     new FuncDef(2, "Thomae",          "f(p/q)=1/q, f(irrac.)=0",            0,      true),
     new FuncDef(3, "Dirichlet",       "f(Q)=1, f(R\\Q)=0",                 -1,      false),
     new FuncDef(4, "sin\u00B2(4pi*x)","4 periodos. RI = LI = 1/2. Pto. medio es exacto por simetria.", 0.5, true),
-    new FuncDef(5, "|xsin(pi/x)|",    "Oscila en 0. RI = LI ~ 0.28114",    0.29318933, true)
+    new FuncDef(5, "|xsin(pi/x)|",    "Oscila en 0. RI = LI ~ 0.2932",    0.29318933, true)
   };
 
   ig     = new Integrador();
