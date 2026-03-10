@@ -49,7 +49,7 @@ Es el momento central del simulador: la conexión entre dominio y codominio se v
 | 0 | x² | Continua | ✓ | ✓ | 1/3 |
 | 1 | sqrt(x) | Continua | ✓ | ✓ | 2/3 |
 | 2 | Thomae | Discontinua en Q (densa) | ✓ | ✓ | 0 |
-| 3 | Dirichlet | Patologica | ✗ | ✓ | LI = 0 |
+| 3 | Dirichlet | Patológica | ✗ | ✓ | LI = 0 |
 | 4 | sin²(4πx) | Oscilatoria suave | ✓ | ✓ | 1/2 |
 | 5 | \|x·sin(π/x)\| | Oscilatoria singular en 0 | ✓ | ✓ | ~0.2932 |
 
@@ -69,24 +69,24 @@ Lebesgue integra limpiamente porque mu(Q) = 0.
    La suma superior baja lentamente; la inferior es siempre 0.
    Activa `[ mostrar sup / inf ]` para verlo.
 
-3. **El caso patologico: Dirichlet** — Activa `[ mostrar sup / inf ]`.
+3. **El caso patológico: Dirichlet** — Activa `[ mostrar sup / inf ]`.
    El gap sup - inf = 1.0000 con cualquier n. Luego mira Lebesgue:
    converge a 0 porque la banda y=1 tiene mu = 0.
    Pasa el mouse sobre esa banda: ningun rectangulo se ilumina en Riemann.
 
 4. **Superconvergencia** — Selecciona sin²(4πx) con n=6, m=3.
    Error de Riemann = 0.000000 con solo 18 rectangulos.
-   No es un bug: la simetria de la funcion cancela exactamente los errores.
+   No es un bug: la simetría de la función cancela exactamente los errores.
 
 5. **Singularidad oscilatoria** — Selecciona |x·sin(π/x)| y aumenta m.
-   Las oscilaciones densas cerca de x=0 requieren mayor subdivision
+   Las oscilaciones densas cerca de x=0 requieren mayor subdivisión
    para capturar bien la integral. Convergencia mas lenta que las otras funciones.
 
 ---
 
 ## Nota tecnica
 
-### Thomae y Dirichlet en aritmetica finita
+### Thomae y Dirichlet en aritmética finita
 Ninguna computadora maneja irracionales reales: todos los flotantes son
 racionales. Thomae usa tolerancia `1e-6` para identificar p/q con q <= 300.
 Dirichlet esta implementada como D_n(x): picos en p/q con q <= n,
