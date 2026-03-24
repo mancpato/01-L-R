@@ -85,13 +85,15 @@ Lebesgue integra limpiamente porque mu(Q) = 0.
 
 ---
 
-## Nota tecnica
+## Nota técnica
 
 ### Thomae y Dirichlet en aritmética finita
 Ninguna computadora maneja irracionales reales: todos los flotantes son
 racionales. Thomae usa tolerancia `1e-6` para identificar p/q con q <= 300.
 Dirichlet esta implementada como D_n(x): picos en p/q con q <= n,
-ventana `c/(n*q²)`. Al aumentar n los picos proliferan pero su medida
+ventana `c/(n*q²)`. 
+
+Al aumentar $n$ los picos proliferan pero su medida
 total tiende a 0 — exactamente la intuicion de Lebesgue.
 Esta es una aproximacion honesta; "maquillar" resultados no seria
 educativamente valioso.
